@@ -1,5 +1,12 @@
 #!/bin/bash 
 
+if [ "$(id -u)" -ne "0" ]; then 
+        echo "Run this script with root priviliges"
+        sudo bash -c "$0 $*"
+        exit
+fi
+
+
 function list_clients() {
 	echo "List of dhcp clients: "
 	echo "----------------------"
@@ -7,10 +14,13 @@ function list_clients() {
 }
 
 
-
-user=$SUDO_USER
 if [[ "$user" == "" ]]; then 
-	user=$(whoami)
+    user=$SUDO_USER
+    echo "USER IS: $user"
+    echo "PARAMS: $*"
+    if [[ "$user" == "" ]]; then 
+    	user=$(whoami)
+    fi
 fi
 CONF_DIR="/home/$user/.cca/wifi-conf.d/"
 
@@ -32,6 +42,9 @@ usage:
 	list-clients:
 		$script list-clients
 
+    stop: 
+        $script stop
+
 
 HELP
 	exit
@@ -39,8 +52,12 @@ fi
 
 CMD=$1
 
+ifconfig wlan0 up 
+sleep 0.5
+
 if [[ "$CMD" == "search" ]] || [[ "$CMD" == "scan" ]]; then 
 	iwlist wlan0 scan | grep -i essid | more
+    exit 
 elif [[ "$CMD" == "add" ]]; then 
 	essid=$2
 	passwd=$3
@@ -54,12 +71,21 @@ elif [[ "$CMD" == "add" ]]; then
 	if [[ "$conf_name" == "" ]]; then 
 		conf_name=$essid
 	fi
+    echo "Conf Name is: $conf_name"
 	wpa_passphrase $essid $passwd > $CONF_DIR/$conf_name.conf
 	read -p "Press [Enter] key to connect to $conf_name..."
-        sudo bash -c "$0 $conf_name"
+    echo "0 is: $0, conf_name is $conf_name"
+    sudo bash -c "user=$user $0 $conf_name"
+    exit 0 
 elif [[ "$CMD" == "list-clients" ]]; then 
 	list_clients
 	exit 0 
+elif [[ "$CMD" == "stop" ]]; then 
+    /etc/init.d/dnsmasq stop
+    iptables --flush
+    iptables --flush --table nat
+    dhclient -r 
+    exit 0 
 fi
 
 CONF=$1
@@ -72,11 +98,12 @@ fi
 
 
 
-if [ "$(id -u)" -ne "0" ]; then 
-        echo "Run this script with root priviliges"
-        sudo bash -c "$0 $1 $2"
-        exit
-fi
+
+echo "Using following credentials: " 
+CONFIG="$CONF_DIR/$CONF.conf"
+cat $CONFIG | grep ssid
+
+ifconfig wlan0 up 
 
 echo "Making NAT configuration..."
 
@@ -84,7 +111,10 @@ echo "Stopping network manager"
 /etc/init.d/network-manager stop
 killall wpa_supplicant 
 
-ifconfig eth0 10.0.10.50/24
+echo "Renewing DHCP lease..."
+dhclient -r
+
+ifconfig eth0 172.17.0.1/24
 /etc/init.d/dnsmasq restart
 
 echo "connecting to wifi 3gconnect"
