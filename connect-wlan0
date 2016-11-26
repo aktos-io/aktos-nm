@@ -58,17 +58,10 @@ wpa_supplicant -c"$conf_file" -Dwext -iwlan0 &
 sleep 5
 dhclient wlan0
 
-echo "Making NAT configuration..."
 echo "Clearing iptables"
 iptables --table nat --flush 
 iptables --flush 
 
-iptables --table nat --append POSTROUTING --out-interface wlan0 -j MASQUERADE
-
-iptables --append FORWARD --in-interface eth0:0 -j ACCEPT
-
-echo 1 > /proc/sys/net/ipv4/ip_forward
-
-echo "All settings are done, use $eth_ip as your gateway to connect to internet..."
+echo "Done..."
 
 
