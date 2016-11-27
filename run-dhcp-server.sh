@@ -5,6 +5,11 @@ if [ "$(id -u)" != "0" ]; then
         exit
 fi
 
+if [ "$1" == "stop" ]; then 
+    /etc/init.d/dnsmasq stop 
+    exit 
+fi
+
 dnsmasq_conf="/etc/dnsmasq.conf"
 echo "dnsmasq settings: "
 cat $dnsmasq_conf | grep "^interface"
