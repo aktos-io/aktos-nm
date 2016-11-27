@@ -29,6 +29,17 @@ HELP
 	exit
 }
 
+echo "Clearing iptables"
+iptables --table nat --flush 
+iptables --flush 
+
+if [ "$1" == "stop" ]; then 
+    echo "disconnected frow wlan..."
+    # we have disconnected earlier...
+    exit 0
+fi
+
+
 if [ "$1" != "" ]; then 
 	eth_ip=$1
 else
@@ -39,16 +50,6 @@ ifconfig $INTERFACE up
 ifconfig ${INTERFACE}${VIRT_INT} $eth_ip
 echo "Using ${INTERFACE}${VIRT_INT}"
 echo "Using $eth_ip"
-
-echo "Clearing iptables"
-iptables --table nat --flush 
-iptables --flush 
-
-if [ "$1" == "stop" ]; then 
-        echo "disconnected frow wlan..."
-        # we have disconnected earlier...
-        exit 0
-fi
 
 echo "Making NAT configuration..."
 iptables --table nat --append POSTROUTING --out-interface wlan0 -j MASQUERADE
