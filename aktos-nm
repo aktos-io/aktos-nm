@@ -1,0 +1,21 @@
+#!/bin/bash 
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+conf_dir="/home/ceremcem/.cca/wifi-conf.d"
+
+if [ "$1" == "add" ]; then 
+    essid=$2
+    if [ "$essid" != "" ]; then 
+        passwd=$3
+        name=$4
+        if [ "$name" == "" ]; then 
+            name=$essid
+        fi
+        conf_file="${conf_dir}/${name}.conf"
+    fi
+    $DIR/gen-wireless-conf.sh $essid $passwd $conf_file
+else 
+    conf_file="${conf_dir}/$1.conf"
+fi 
+
+$DIR/connect-wlan0 ${conf_file}
