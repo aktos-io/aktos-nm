@@ -1,0 +1,12 @@
+#!/bin/bash 
+
+IP_PREFIX="192.168.2."
+
+export COUNTER=1
+while [ $COUNTER -lt 255 ]
+do
+    TARG=${IP_PREFIX}${COUNTER}
+    echo "Pinging $TARG"
+    ping $TARG -c 1 -w 400 | grep -B 1 "Lost = 0" &
+    COUNTER=$(( $COUNTER + 1 ))
+done

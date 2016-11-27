@@ -1,0 +1,23 @@
+#!/bin/bash 
+net=$1
+
+if [ ! $net ]; then 
+    echo "usage: $0 192.168.2.0/24"
+    exit
+fi
+
+echo "Getting toggling IP in $net network..."
+
+. ./aktos-bash-lib/common.sh 
+
+
+CURR=$(fping -qag $net | sort)
+echo "Current status: "
+echo "$CURR"
+while true; do 
+    PREV=$CURR
+    CURR=$(fping -qag $net | sort)
+    echo "$SCANNED"
+    pause 
+    diff <( printf "$CURR" ) <( printf "$PREV" )
+done
