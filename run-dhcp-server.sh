@@ -12,6 +12,11 @@ cat $dnsmasq_conf | grep "^dhcp-"
 
 echo 
 echo "restarting dnsmasq..."
+
+if [ "$1" == "clean" ]; then 
+    echo "clearing dnsmasq.leases"
+    rm /var/lib/misc/dnsmasq.leases
+fi
 /etc/init.d/dnsmasq restart
 
 echo

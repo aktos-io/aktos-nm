@@ -1,5 +1,8 @@
 #!/bin/bash 
 
+INTERFACE="eth0"
+VIRT_INT=":2"
+
 if [ "$(id -u)" != "0" ]; then 
 	sudo $0 $@
 	exit
@@ -18,7 +21,7 @@ Make eth0 as gateway, get internet from wlan0
 
 usage:
 	start:
-		$script [ip-for-eth0:0]
+		$script [ip-for-${INTERFACE}${VIRT_INT}]
 
 	stop:
 		$script stop
@@ -29,11 +32,13 @@ HELP
 if [ "$1" != "" ]; then 
 	eth_ip=$1
 else
-	eth_ip="172.16.0.1/24"
+	eth_ip="172.17.0.1/24"
 fi
 
-ifconfig eth0:0 $eth_ip
-echo "Using $eth_ip for eth0:0..."
+ifconfig $INTERFACE up
+ifconfig ${INTERFACE}${VIRT_INT} $eth_ip
+echo "Using ${INTERFACE}${VIRT_INT}"
+echo "Using $eth_ip"
 
 echo "Clearing iptables"
 iptables --table nat --flush 
@@ -47,9 +52,10 @@ fi
 
 echo "Making NAT configuration..."
 iptables --table nat --append POSTROUTING --out-interface wlan0 -j MASQUERADE
-iptables --append FORWARD --in-interface eth0:0 -j ACCEPT
+iptables --append FORWARD --in-interface ${INTERFACE}${VIRT_INT} -j ACCEPT
 echo 1 > /proc/sys/net/ipv4/ip_forward
 
-echo "All settings are done, use $eth_ip as your gateway to connect to internet..."
-
+echo "All settings are done"
+echo "Setup clients to use $eth_ip as their gateway to connect to internet..."
+echo 
 
