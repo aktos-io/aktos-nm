@@ -49,19 +49,10 @@ if [ "$(iwlist wlan0 scan | grep -i essid | grep $essid)" == "" ]; then
 	echo "WARNING: "
 fi
 
-eth_ip="172.16.0.1/24"
-ifconfig eth0:0 $eth_ip
-echo "Using $eth_ip for eth0:0..."
-
 echo "connecting to wifi"
 wpa_supplicant -c"$conf_file" -Dwext -iwlan0 &
 sleep 5
 dhclient wlan0
 
-echo "Clearing iptables"
-iptables --table nat --flush 
-iptables --flush 
-
-echo "Done..."
-
+echo "all done..."
 
