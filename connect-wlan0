@@ -39,9 +39,9 @@ fi
 
 essid=$(cat $conf_file | grep ssid | awk -F'=' '{print $2}' | sed "s/\"//g")
 sleep 1
-ifconfig wlan0 up 
-
-if [ "$(iwlist wlan0 scan | grep -i essid | grep $essid)" == "" ]; then 
+ifconfig wlp2s0 up 
+found_essid=$(iwlist wlp2s0 scan | grep -i essid | grep $essid)
+if [ "$found_essid" == "" ]; then 
 	echo "WARNING: "
 	echo "WARNING: "
 	echo "WARNING: No wireless network is currently present named '$essid'"
@@ -50,9 +50,9 @@ if [ "$(iwlist wlan0 scan | grep -i essid | grep $essid)" == "" ]; then
 fi
 
 echo "connecting to wifi"
-wpa_supplicant -c"$conf_file" -Dwext -iwlan0 &
+wpa_supplicant -c"$conf_file" -Dwext -iwlp2s0 &
 sleep 5
-dhclient wlan0
+dhclient wlp2s0
 
 echo "all done..."
 

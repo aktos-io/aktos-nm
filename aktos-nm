@@ -1,7 +1,14 @@
 #!/bin/bash 
+if [ "$(whoami)" != "root" ]; then 
+    echo "$(whoami) runs $0  with sudo"
+    sudo $0 $* 
+    exit 
+fi
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-conf_dir="/home/ceremcem/.cca/wifi-conf.d"
+DIR=$(dirname "$(readlink -f "$0")")
+cd $DIR 
+
+conf_dir="$DIR/passwords.d"
 
 if [ "$1" == "add" ]; then 
     essid=$2
@@ -14,6 +21,11 @@ if [ "$1" == "add" ]; then
         conf_file="${conf_dir}/${name}.conf"
     fi
     $DIR/gen-wireless-conf.sh $essid $passwd $conf_file
+elif [ "$1" == "stop" ]; then
+    echo "stopping wpa_supplicant..."
+    sudo killall wpa_supplicant
+    sudo ifconfig wlan0 down 
+    exit
 else 
     conf_file="${conf_dir}/$1.conf"
 fi 
