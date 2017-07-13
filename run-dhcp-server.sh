@@ -1,5 +1,11 @@
 #!/bin/bash 
 
+echo "example dnsmasq configuration:"
+cat <<CONF
+    interface=eth0
+    dhcp-range=10.0.8.100,10.0.8.120,12h
+CONF
+
 if [ "$(id -u)" != "0" ]; then 
         sudo $0 $@
         exit
@@ -11,7 +17,7 @@ if [ "$1" == "stop" ]; then
 fi
 
 dnsmasq_conf="/etc/dnsmasq.conf"
-echo "dnsmasq settings: "
+echo "dnsmasq settings ($dnsmasq_conf): "
 cat $dnsmasq_conf | grep "^interface"
 cat $dnsmasq_conf | grep "^dhcp-"
 
