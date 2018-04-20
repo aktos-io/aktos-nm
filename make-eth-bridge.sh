@@ -102,6 +102,25 @@ contains(){
 
 [ -z $LAN_IP ] && die "LAN interface IP is required."
 
+# Cleanup code 
+finish() {
+  echo
+  echo_yellow "Stopping gateway..."
+  iptables -P INPUT ACCEPT
+  iptables -P FORWARD ACCEPT
+  iptables -P OUTPUT ACCEPT
+  iptables -F
+  iptables -X
+  iptables -t nat -F
+  iptables -t nat -X
+  iptables -t mangle -F
+  iptables -t mangle -X
+  iptables -t raw -F
+  iptables -t raw -X
+  echo_green "done..."
+}
+trap finish EXIT
+
 LAN_IP="$LAN_IP"
 NETMASK=24
 
@@ -113,25 +132,12 @@ ifconfig $LAN $LAN_IP/$NETMASK
 echo 1 > /proc/sys/net/ipv4/ip_forward
 sysctl -w net.ipv4.ip_forward=1 > /dev/null
 
-
-clear_iptables() {
-  echo "Clearing iptables"
-  iptables -t nat -F
-  iptables -t mangle -F
-  iptables -X
-}
-
-finish() {
-  echo
-  echo_yellow "Stopping gateway..."
-  clear_iptables
-  echo_green "done..."
-}
-trap finish EXIT
-
 # Clear iptables before configuring
+echo "Clearing iptables"
 iptables -F
-clear_iptables
+iptables -t nat -F
+iptables -t mangle -F
+iptables -X
 
 #
 # Debug logging
