@@ -17,7 +17,9 @@ list_interfaces(){
 show_help() {
     cat <<HELP
     Usage:
-        $(basename $0) ...options...
+
+        sudo $(basename $0) --wan wlp2s0 --lan eth0 --ip 10.0.8.50
+
     Options:
     --wan       : WAN interface (the interface which has a working internet connection)
     --lan       : LAN interface (the interface that will act as a modem)
@@ -76,11 +78,22 @@ while :; do
 done
 
 #echo "DEBUG: WAN: $WAN, LAN: $LAN, LAN_IP: $LAN_IP"
+curr_interfaces=$(list_interfaces)
 
+contains(){
+    list=$1
+    x=$2
+    [[ $list =~ (^|[[:space:]])"$x"($|[[:space:]]) ]] && echo "yes" || echo "no"
+}
+
+# check required parameters
 [ -z $WAN ] && die "WAN interface is required."
-[ -z $LAN ] && die "LAN interface is required."
-[ -z $LAN_IP ] && die "LAN interface IP is required."
+[[ $(contains "$curr_interfaces" "$WAN") == "yes" ]] || die  "No such WAN interface can be found: $WAN"
 
+[ -z $LAN ] && die "LAN interface is required."
+[[ $(contains "$curr_interfaces" "$LAN") == "yes" ]] || die  "No such LAN interface can be found: $LAN"
+
+[ -z $LAN_IP ] && die "LAN interface IP is required."
 
 LAN_IP="$LAN_IP/24"
 
