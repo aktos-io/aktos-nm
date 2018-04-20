@@ -68,3 +68,6 @@ iptables -A INPUT -p icmp --icmp-type echo-request -j ACCEPT
 iptables -A INPUT -p icmp --icmp-type echo-reply -j ACCEPT
 
 echo "done... Use ${LAN_IP} as default gateway on the client."
+
+echo "...checking for active DHCP server on $LAN"
+nmap --script broadcast-dhcp-discover -e $LAN 2> /dev/null
