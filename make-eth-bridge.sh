@@ -115,20 +115,22 @@ sysctl -w net.ipv4.ip_forward=1 > /dev/null
 
 
 clear_iptables() {
-echo "Clearing iptables"
-iptables -F
-iptables -t nat -F
-iptables -t mangle -F
-iptables -X
+  echo "Clearing iptables"
+  iptables -t nat -F
+  iptables -t mangle -F
+  iptables -X
 }
 
 finish() {
-    echo
-    echo_yellow "Stopping gateway..."
-    clear_iptables
-    echo_green "done..."
+  echo
+  echo_yellow "Stopping gateway..."
+  clear_iptables
+  echo_green "done..."
 }
 trap finish EXIT
+
+# Clear iptables before configuring
+iptables -F
 clear_iptables
 
 #
