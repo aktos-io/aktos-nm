@@ -1,4 +1,5 @@
 
 # Make current machine a gateway 
 
-    ./make-eth0-wifi-gateway.sh 10.1.10.50
+    sudo ./make-eth-bridge.sh --wan wlp2s0 --lan eth0 --ip 10.0.8.50
+

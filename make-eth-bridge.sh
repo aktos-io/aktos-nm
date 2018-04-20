@@ -1,4 +1,11 @@
 #!/bin/bash
+
+# check the dependencies 
+if ! `hash udhcpd`; then
+    echo "Install udhcpd first."
+    exit 5
+fi
+
 # Force running as root 
 if [ "$(whoami)" != "root" ]; then
   echo "Run as root."
@@ -95,21 +102,34 @@ contains(){
 
 [ -z $LAN_IP ] && die "LAN interface IP is required."
 
-LAN_IP="$LAN_IP/24"
+LAN_IP="$LAN_IP"
+NETMASK=24
 
-echo_green "Using $WAN as WAN, $LAN as LAN and $LAN_IP as IP of $LAN."
+echo_green "Using $WAN as WAN, $LAN as LAN and $LAN_IP/$NETMASK as IP of $LAN."
 
 ifconfig $LAN up
-ifconfig $LAN $LAN_IP
+ifconfig $LAN $LAN_IP/$NETMASK
 
 echo 1 > /proc/sys/net/ipv4/ip_forward
 sysctl -w net.ipv4.ip_forward=1 > /dev/null
 
+
+clear_iptables() {
 echo "Clearing iptables"
 iptables -F
 iptables -t nat -F
 iptables -t mangle -F
 iptables -X
+}
+
+finish() {
+    echo
+    echo_yellow "Stopping gateway..."
+    clear_iptables
+    echo_green "done..."
+}
+trap finish EXIT
+clear_iptables
 
 #
 # Debug logging
@@ -118,17 +138,6 @@ iptables -X
 
 
 echo "Configuring iptables..."
-#
-# Default to drop packets
-#iptables -P INPUT DROP
-#iptables -P OUTPUT DROP
-#iptables -P FORWARD DROP
-
-#
-# Allow all local loopback traffic
-iptables -A INPUT -i lo -j ACCEPT
-iptables -A OUTPUT -o lo -j ACCEPT
-
 #
 # Allow output on $WAN and $LAN if. Allow input on $LAN if.
 iptables -A INPUT -i $LAN -j ACCEPT
@@ -148,9 +157,39 @@ iptables -A INPUT -p icmp --icmp-type time-exceeded -j ACCEPT
 iptables -A INPUT -p icmp --icmp-type echo-request -j ACCEPT
 iptables -A INPUT -p icmp --icmp-type echo-reply -j ACCEPT
 
-echo "done... Use ${LAN_IP} as default gateway on the client."
-echo 
-echo "    sudo route add default gw 10.0.8.50"
-echo 
-echo "...checking for active DHCP server on $LAN"
-nmap --script broadcast-dhcp-discover -e $LAN 2> /dev/null
+echo_green "Starting the DHCP server on $LAN"
+baseip=`echo $LAN_IP | cut -d"." -f1-3`
+last_octet=${LAN_IP#$baseip.}
+offset=0
+[[ $last_octet -le 100 ]] && offset=100
+start_ip="$baseip.$((offset + 5))"
+end_ip="$baseip.$((offset + 10))"
+#echo "DEBUG: baseip: $baseip, last octet: $last_octet, start: $start_ip, end: $end_ip"
+
+# --------------------------------------------
+TMP_CONFIG=$DIR/tmp_dhcp_config
+cat << CONFIG > $TMP_CONFIG
+# Sample minimal udhcpd configuration file 
+#   (see https://udhcp.busybox.net/udhcpd.conf for full options)
+
+# The start and end of the IP lease block
+start       $start_ip
+end         $end_ip 
+
+# The interface that udhcpd will use
+interface   $LAN
+
+# Static leases map
+#static_lease 00:60:08:11:CE:4E 192.168.0.54
+#static_lease 00:60:08:11:CE:3E 192.168.0.44
+
+# Other options
+option dns 8.8.8.8
+option subnet  255.255.255.0
+option router  $LAN_IP
+
+CONFIG
+
+nano $TMP_CONFIG
+touch /var/lib/misc/udhcpd.leases
+udhcpd -f -I $LAN_IP ./tmp_dhcp_config
