@@ -200,4 +200,4 @@ CONFIG
 
 nano $TMP_CONFIG
 touch /var/lib/misc/udhcpd.leases
-udhcpd -f -I $LAN_IP ./tmp_dhcp_config
+udhcpd -f -I $LAN_IP $TMP_CONFIG
