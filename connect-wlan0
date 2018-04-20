@@ -1,5 +1,7 @@
 #!/bin/bash 
 
+WAN="wlan0"
+
 if [ "$(id -u)" != "0" ]; then 
 	sudo $0 $@
 	exit
@@ -39,8 +41,8 @@ fi
 
 essid=$(cat $conf_file | grep ssid | awk -F'=' '{print $2}' | sed "s/\"//g")
 sleep 1
-ifconfig wlp2s0 up 
-found_essid=$(iwlist wlp2s0 scan | grep -i essid | grep $essid)
+ifconfig $WAN up 
+found_essid=$(iwlist $WAN scan | grep -i essid | grep $essid)
 if [ "$found_essid" == "" ]; then 
 	echo "WARNING: "
 	echo "WARNING: "
@@ -50,9 +52,9 @@ if [ "$found_essid" == "" ]; then
 fi
 
 echo "connecting to wifi"
-wpa_supplicant -c"$conf_file" -Dwext -iwlp2s0 &
+wpa_supplicant -c"$conf_file" -Dwext -i$WAN &
 sleep 5
-dhclient wlp2s0
+dhclient $WAN
 
 echo "all done..."
 
