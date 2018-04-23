@@ -23,9 +23,9 @@ echo "Starting daemon..."
 published_reachable=
 while true; do
 	if ! is_network_reachable; then 
-        echo "Network seems not reachable, waiting for 30 seconds for refreshing connection"
+        echo "Network seems not reachable, waiting for 10 seconds for refreshing connection"
         published_reachable=
-        sleep 5s
+        sleep 10s
     	if ! is_network_reachable; then
 			echo "Network is still unreachable, reloading networking..."
             $DIR/reset-interfaces.sh
