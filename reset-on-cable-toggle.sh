@@ -1,4 +1,5 @@
 #!/bin/bash 
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 if [ "$(id -u)" != "0" ]; then 
         sudo $0 $@
@@ -23,10 +24,7 @@ while true; do
 		while true; do
 			if [[ "$(is_cable_plugged)" == "yes" ]]; then
 				echo_debug "Cable is now connected, reloading networking..." 
-				rm /var/lib/dhcp/dhclient*
-				#/etc/init.d/networking reload
-				dhclient eth0
-				#route add default gw 10.0.10.50 # needed if no dhcp server is present
+                $DIR/reset-interfaces.sh
 				break
 			fi
 			echo_debug "Waiting for cable to be connected..."
