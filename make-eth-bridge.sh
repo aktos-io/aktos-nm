@@ -31,6 +31,7 @@ show_help() {
     --wan       : WAN interface (the interface which has a working internet connection)
     --lan       : LAN interface (the interface that will act as a modem)
     --ip   	: Desired IP address of LAN interface
+    --unattended: Do not show DHCP server configuration screen
 
     Currently available interfaces on $(hostname):
 
@@ -50,6 +51,7 @@ die () {
     exit 5
 }
 
+UNATTENDED=
 while :; do
     case $1 in
         -h|-\?|--help)
@@ -73,6 +75,10 @@ while :; do
                 LAN_IP=$2
                 shift
             fi
+            ;;
+        --unattended)       # Takes an option argument; ensure it has been specified.
+            UNATTENDED="yes"
+            shift
             ;;
         -?*)
             printf 'WARN: Unknown option (ignored): %s\n' "$1" >&2
@@ -198,6 +204,6 @@ option router  $LAN_IP
 
 CONFIG
 
-nano $TMP_CONFIG
+[[ "$UNATTENDED" == "yes" ]] || nano $TMP_CONFIG
 touch /var/lib/misc/udhcpd.leases
 udhcpd -f -I $LAN_IP $TMP_CONFIG
