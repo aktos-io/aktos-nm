@@ -1,9 +1,10 @@
 #!/bin/bash
-set -eu -o pipefail
+set -u -o pipefail
 safe_source () { [[ ! -z ${1:-} ]] && source $1; _dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; _sdir=$(dirname "$(readlink -f "$0")"); }; safe_source
 # end of bash boilerplate
 
 safe_source $_sdir/lib/all.sh
+set +e # do not exit on error
 
 show_help(){
     local script=$(basename $0)
@@ -40,30 +41,46 @@ if [[ $1 != 'stop' ]]; then
     echo_green "Connecting to $essid"
 fi
 
-set +e
+ifconfig $WAN up
+i=0
+while :; do
+    found_essid=$(iwlist $WAN scan | grep -i essid | grep $essid)
+    if [ "$found_essid" == "" ]; then
+        i=$(( $i + 1 ))
+        echo -en "\r"
+    	echo -en "WARNING: Waiting for '$essid' ($(date +%H:%M:%S))"
+    else
+        [[ $i -gt 0 ]] && echo
+        break
+    fi
+    sleep 2s
+done
+
+# disconnect first
 if [[ -e /etc/init.d/network-manager ]]; then
     echo_yellow "Stopping network manager"
     /etc/init.d/network-manager stop 2> /dev/null
 fi
 echo "Stopping any previous processes"
 killall wpa_supplicant 2> /dev/null
-route del default
-ip route flush cache
-set -e
+route del default 2> /dev/null
+dhclient -r
 [[ $1 = 'stop' ]] && exit 0
 sleep 1
 
-ifconfig $WAN up
-found_essid=$(iwlist $WAN scan | grep -i essid | grep $essid)
-if [ "$found_essid" == "" ]; then
-	echo "WARNING: "
-	echo "WARNING: No wireless network is currently present named '$essid'"
-	echo "WARNING: "
+# connect
+wpa_supplicant -c"$conf_file" -Dnl80211 -i$WAN &
+timeout 30s dhclient $WAN 2> /dev/null
+if [[ $? -eq 0 ]]; then
+    echo "IP address: $(get_ip_of $WAN)"
+else
+    errcho "..failed getting dhcp response for $WAN"
 fi
-
-wpa_supplicant -c"$conf_file" -Dnl80211 -i$WAN -B
-dhclient $WAN 2> /dev/null
 
 set +e
 rm /etc/resolv.conf.dhclient-new.* 2> /dev/null
-echo_green "all done..."
+if is_network_reachable; then
+    echo_green "Connected to internet."
+else
+    echo_yellow "WARNING: No internet available."
+fi
