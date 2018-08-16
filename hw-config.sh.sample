@@ -1,0 +1,3 @@
+_wlan0='wlan0'
+#_wlan1='wlan1' ...etc
+_eth0='eth0'

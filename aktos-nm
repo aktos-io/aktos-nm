@@ -1,33 +1,89 @@
-#!/bin/bash 
-if [ "$(whoami)" != "root" ]; then 
-    echo "$(whoami) runs $0  with sudo"
-    sudo $0 $* 
-    exit 
+#!/bin/bash
+set -eu -o pipefail
+safe_source () { [[ ! -z ${1:-} ]] && source $1; _dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; _sdir=$(dirname "$(readlink -f "$0")"); }; safe_source
+# end of bash boilerplate
+
+show_help(){
+    local script=$(basename $0)
+    cat <<<HELP
+
+	Connect to `your-essid`:
+		$script your-essid
+
+	Add a new configuration:
+		$script --add your-essid your-password [optional-name]
+HELP
+    exit
+}
+
+
+while :; do
+    case $1 in
+        -h|-\?|--help)
+            show_help    # Display a usage synopsis.
+            exit
+            ;;
+        --wan)       # Takes an option argument; ensure it has been specified.
+            if [ "$2" ]; then
+                WAN=$2
+                shift
+            fi
+            ;;
+        --lan)       # Takes an option argument; ensure it has been specified.
+            if [ "$2" ]; then
+                LAN=$2
+                shift
+            fi
+            ;;
+        --ip)       # Takes an option argument; ensure it has been specified.
+            if [ "$2" ]; then
+                LAN_IP=$2
+                shift
+            fi
+            ;;
+        --unattended)       # Takes an option argument; ensure it has been specified.
+            UNATTENDED="yes"
+            shift
+            ;;
+        -?*)
+            printf 'WARN: Unknown option (ignored): %s\n' "$1" >&2
+            ;;
+        *)               # Default case: No more options, so break out of the loop.
+            break
+    esac
+
+    shift
+done
+
+[[ $(whoami) = "root" ]] || { sudo $0 $*; exit 0; }
+
+cd $_sdir
+
+# include hardware configuration
+config=$_sdir/config.sh
+if [[ ! -f $config ]]; then
+    cp $config.sample $config
+    nano $config
 fi
+safe_source $config
 
-DIR=$(dirname "$(readlink -f "$0")")
-cd $DIR 
 
-conf_dir="$DIR/passwords.d"
-
-if [ "$1" == "add" ]; then 
-    essid=$2
-    if [ "$essid" != "" ]; then 
+conf_dir="$_sdir/passwords.d"
+if [ "$1" == "add" ]; then
+    essid=${2:-}
+    if [ "$essid" != "" ]; then
         passwd=$3
-        name=$4
-        if [ "$name" == "" ]; then 
-            name=$essid
-        fi
+        name=${4:-$essid}
         conf_file="${conf_dir}/${name}.conf"
     fi
-    $DIR/gen-wireless-conf.sh $essid $passwd $conf_file
+    $_sdir/config-wifi $essid $passwd $conf_file
 elif [ "$1" == "stop" ]; then
     echo "stopping wpa_supplicant..."
     sudo killall wpa_supplicant
-    sudo ifconfig wlan0 down 
+    sudo ifconfig $_wlan0 down
     exit
-else 
+else
     conf_file="${conf_dir}/$1.conf"
-fi 
+fi
 
-$DIR/connect-wlan0 ${conf_file}
+$_sdir/connect-wifi $_wlan0 "$conf_file"
