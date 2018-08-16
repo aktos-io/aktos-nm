@@ -1,21 +1,17 @@
 #!/bin/bash
+set -eu -o pipefail
+safe_source () { [[ ! -z ${1:-} ]] && source $1; _dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; _sdir=$(dirname "$(readlink -f "$0")"); }; safe_source
+# end of bash boilerplate
 
-# check the dependencies 
+# check the dependencies
 if ! `hash udhcpd`; then
     echo "Install udhcpd first."
     exit 5
 fi
 
-# Force running as root 
-if [ "$(whoami)" != "root" ]; then
-  echo "Run as root."
-  exit
-fi
+[[ $(whoami) = "root" ]] || { sudo $0 $*; exit 0; }
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-
-source $DIR/aktos-bash-lib/basic-functions.sh
-
+source $_sdir/lib/all.sh
 
 list_interfaces(){
     ifconfig -a  | egrep "^[a-z]+" | sed "s/: .*//" | grep -v "lo"
@@ -53,8 +49,8 @@ die () {
 
 UNATTENDED=
 while :; do
-    case $1 in
-        -h|-\?|--help)
+    case ${1:-} in
+        -h|-\?|--help|'')
             show_help    # Display a usage synopsis.
             exit
             ;;
@@ -86,8 +82,6 @@ while :; do
         *)               # Default case: No more options, so break out of the loop.
             break
     esac
-
-    shift
 done
 
 #echo "DEBUG: WAN: $WAN, LAN: $LAN, LAN_IP: $LAN_IP"
@@ -108,7 +102,7 @@ contains(){
 
 [ -z $LAN_IP ] && die "LAN interface IP is required."
 
-# Cleanup code 
+# Cleanup code
 finish() {
   echo
   echo_yellow "Stopping gateway..."
@@ -183,12 +177,12 @@ end_ip="$baseip.$((offset + 10))"
 # --------------------------------------------
 TMP_CONFIG=$DIR/tmp_dhcp_config
 cat << CONFIG > $TMP_CONFIG
-# Sample minimal udhcpd configuration file 
+# Sample minimal udhcpd configuration file
 #   (see https://udhcp.busybox.net/udhcpd.conf for full options)
 
 # The start and end of the IP lease block
 start       $start_ip
-end         $end_ip 
+end         $end_ip
 
 # The interface that udhcpd will use
 interface   $LAN
