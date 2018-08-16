@@ -3,13 +3,15 @@ set -eu -o pipefail
 safe_source () { [[ ! -z ${1:-} ]] && source $1; _dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; _sdir=$(dirname "$(readlink -f "$0")"); }; safe_source
 # end of bash boilerplate
 
+safe_source $_sdir/lib/all.sh
+
 show_help(){
     local script=$(basename $0)
     cat <<HELP
 
 usage:
 	connect:
-		$script /path/to/wpa_passphrase-generated-config-file
+		$script interface /path/to/config
 
 	disconnect:
 		$script stop
@@ -18,42 +20,50 @@ HELP
 }
 
 while :; do
-    case $1 in
-        -h|-\?|--help)
+    case ${1:-} in
+        -h|-\?|--help|'')
             show_help    # Display a usage synopsis.
             exit
             ;;
         *)               # Default case: No more options, so break out of the loop.
             break
     esac
-
-    shift
 done
-
-
-[[ $(whoami) = "root" ]] || { sudo $0 $*; exit 0; }
-
 
 WAN=$1
 conf_file=$2
 
-echo "Stopping network manager"
-/etc/init.d/network-manager stop 2> /dev/null
-killall wpa_supplicant 2> /dev/null
+[[ $(whoami) = "root" ]] || { sudo $0 $*; exit 0; }
 
-essid=$(cat $conf_file | grep ssid | awk -F'=' '{print $2}' | sed "s/\"//g")
+if [[ $1 != 'stop' ]]; then
+    essid=$(cat $conf_file | grep ssid | awk -F'=' '{print $2}' | sed "s/\"//g")
+    echo_green "Connecting to $essid"
+fi
+
+set +e
+if [[ -e /etc/init.d/network-manager ]]; then
+    echo_yellow "Stopping network manager"
+    /etc/init.d/network-manager stop 2> /dev/null
+fi
+echo "Stopping any previous processes"
+killall wpa_supplicant 2> /dev/null
+route del default
+ip route flush cache
+set -e
+[[ $1 = 'stop' ]] && exit 0
 sleep 1
+
 ifconfig $WAN up
 found_essid=$(iwlist $WAN scan | grep -i essid | grep $essid)
-if [ "$found_essid" == "" ]; then 
+if [ "$found_essid" == "" ]; then
 	echo "WARNING: "
 	echo "WARNING: No wireless network is currently present named '$essid'"
 	echo "WARNING: "
 fi
 
-echo "connecting to wifi"
-wpa_supplicant -c"$conf_file" -Dwext -i$WAN &
-dhclient $WAN
-wait
-echo "all done..."
+wpa_supplicant -c"$conf_file" -Dnl80211 -i$WAN -B
+dhclient $WAN 2> /dev/null
 
+set +e
+rm /etc/resolv.conf.dhclient-new.* 2> /dev/null
+echo_green "all done..."
