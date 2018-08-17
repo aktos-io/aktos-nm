@@ -1,0 +1,45 @@
+#!/bin/bash
+set -u -o pipefail
+safe_source () { [[ ! -z ${1:-} ]] && source $1; _dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; _sdir=$(dirname "$(readlink -f "$0")"); }; safe_source
+# end of bash boilerplate
+
+safe_source $_sdir/lib/all.sh
+set +e # do not exit on error
+
+hook=$1
+if [[ -e $hook ]]; then
+    true
+elif [[ -e $_sdir/$hook ]]; then
+    hook=$_sdir/$hook
+elif `hash $hook`; then
+    true
+else
+    echo "Hook script is required."
+    exit 1
+fi
+[[ $(whoami) = "root" ]] || { sudo $0 $*; exit 0; }
+
+# re-align rest of the parameters
+shift
+
+echo_green "Starting daemon..."
+connected0=true
+connected=false
+poll=5
+while true; do
+	if ! is_cable_plugged eth0; then
+        if [[ $connected0 = true ]] && [[ $connected = false ]]; then
+            echo_red "Cable is detached, triggering $(basename $hook)"
+            $hook $*
+        fi
+        connected0=$connected
+        connected=false
+	else
+    	if [[ $connected0 = false ]] && [[ $connected = true ]]; then
+            echo_green "Cable is attached."
+        fi
+        connected0=$connected
+        connected=true
+    fi
+    sleep 5s
+done

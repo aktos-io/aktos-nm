@@ -27,7 +27,7 @@ HELP
 
 cmd='connect'
 while :; do
-    case ${1:-} in
+    case ${1:-''} in
         -h|-\?|--help|'')
             show_help    # Display a usage synopsis.
             exit
@@ -52,10 +52,8 @@ while :; do
             fi
             ;;
         --stop)       # Takes an option argument; ensure it has been specified.
-            if [ "$2" ]; then
-                cmd='stop'
-                shift
-            fi
+            cmd='stop'
+            break
             ;;
         *)               # Default case: No more options, so break out of the loop.
             break
