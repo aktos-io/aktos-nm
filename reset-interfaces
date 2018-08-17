@@ -5,15 +5,17 @@ safe_source () { [[ ! -z ${1:-} ]] && source $1; _dir="$(cd "$(dirname "${BASH_S
 
 safe_source $_sdir/lib/all.sh
 
+[[ $(whoami) = "root" ]] || { sudo $0 $*; exit 0; }
+
+iface=${1:-'eth0'}
+echo "Resetting $iface"
 echo "Removing lease files..."
 rm /var/lib/dhcp/dhclient* 2> /dev/null
-
-iface=${1:-eth0}
 
 #/etc/init.d/networking reload
 dhclient -r $iface # killing old client
 ifconfig $iface down
 ifconfig $iface up
 echo "Requesting DHCP for $iface"
-timeout 5s dhclient -v $iface 2> /dev/null
+timeout 25s dhclient -v $iface 2> /dev/null
 [[ "$?" == "0" ]] || echo "..failed getting dhcp response for $iface"
