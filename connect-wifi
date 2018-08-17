@@ -71,17 +71,27 @@ sleep 1
 
 # connect
 wpa_supplicant -c"$conf_file" -Dnl80211 -i$WAN &
-timeout 30s dhclient $WAN 2> /dev/null
-if [[ $? -eq 0 ]]; then
-    echo "IP address: $(get_ip_of $WAN)"
-else
-    errcho "..failed getting dhcp response for $WAN"
-fi
+#wpa_supplicant -c"$conf_file" -Dwext -i$WAN &
 
-set +e
-rm /etc/resolv.conf.dhclient-new.* 2> /dev/null
-if is_network_reachable; then
-    echo_green "Connected to internet."
-else
-    echo_yellow "WARNING: No internet available."
-fi
+# get dynamic IP
+while :; do
+    echo "Cleaning DHCP cache"
+    route del default 2> /dev/null
+    dhclient -r
+
+    timeout 5s dhclient $WAN 2> /dev/null
+    if [[ $? -eq 0 ]]; then
+        echo "IP address: $(get_ip_of $WAN)"
+        set +e
+        rm /etc/resolv.conf.dhclient-new.* 2> /dev/null
+        if is_network_reachable; then
+            echo_green "Connected to internet."
+        else
+            echo_yellow "WARNING: No internet available."
+        fi
+        break
+    else
+        errcho "..failed getting dhcp response for $WAN"
+    fi
+    sleep 2
+done
