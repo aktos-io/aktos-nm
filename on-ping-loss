@@ -7,9 +7,9 @@ safe_source $_sdir/lib/all.sh
 set +e # do not exit on error
 
 hook=$1
-if [[ -e $hook ]]; then
-    true
-elif [[ -e $_sdir/$hook ]]; then
+if [[ -x $PWD/$hook ]]; then
+    hook=$PWD/$hook
+elif [[ -x $_sdir/$hook ]]; then
     hook=$_sdir/$hook
 elif `hash $hook`; then
     true
@@ -19,6 +19,8 @@ else
 fi
 
 [[ $(whoami) = "root" ]] || { sudo $0 $*; exit 0; }
+
+echo "Hook script will be used: $hook"
 
 # re-align rest of the parameters
 shift
