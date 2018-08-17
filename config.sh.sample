@@ -1,0 +1,3 @@
+#!/bin/bash
+_wlan0='wlan0'
+_eth0='eth0'

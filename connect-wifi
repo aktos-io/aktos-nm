@@ -1,0 +1,87 @@
+#!/bin/bash
+set -u -o pipefail
+safe_source () { [[ ! -z ${1:-} ]] && source $1; _dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; _sdir=$(dirname "$(readlink -f "$0")"); }; safe_source
+# end of bash boilerplate
+
+safe_source $_sdir/lib/all.sh
+set +e # do not exit on error
+
+show_help(){
+    local script=$(basename $0)
+    cat <<HELP
+
+usage:
+	connect:
+		$script interface /path/to/config
+
+	disconnect:
+		$script stop
+HELP
+    exit
+}
+
+while :; do
+    case ${1:-} in
+        -h|-\?|--help|'')
+            show_help    # Display a usage synopsis.
+            exit
+            ;;
+        *)               # Default case: No more options, so break out of the loop.
+            break
+    esac
+done
+
+[[ $(whoami) = "root" ]] || { sudo $0 $*; exit 0; }
+
+if [[ $1 != 'stop' ]]; then
+    WAN=$1
+    conf_file=$2
+
+    essid=$(cat $conf_file | grep ssid | awk -F'=' '{print $2}' | sed "s/\"//g")
+    echo_green "Connecting to $essid"
+
+    ifconfig $WAN up
+    i=0
+    while :; do
+        found_essid=$(iwlist $WAN scan | grep -i essid | grep $essid)
+        if [ "$found_essid" == "" ]; then
+            i=$(( $i + 1 ))
+            echo -en "\r"
+        	echo -en "WARNING: Waiting for '$essid' ($(date +%H:%M:%S))"
+        else
+            [[ $i -gt 0 ]] && echo
+            break
+        fi
+        sleep 2s
+    done
+fi
+
+
+# disconnect first
+if [[ -e /etc/init.d/network-manager ]]; then
+    echo_yellow "Stopping network manager"
+    /etc/init.d/network-manager stop 2> /dev/null
+fi
+echo "Stopping any previous processes"
+killall wpa_supplicant 2> /dev/null
+route del default 2> /dev/null
+dhclient -r
+[[ $1 = 'stop' ]] && exit 0
+sleep 1
+
+# connect
+wpa_supplicant -c"$conf_file" -Dnl80211 -i$WAN &
+timeout 30s dhclient $WAN 2> /dev/null
+if [[ $? -eq 0 ]]; then
+    echo "IP address: $(get_ip_of $WAN)"
+else
+    errcho "..failed getting dhcp response for $WAN"
+fi
+
+set +e
+rm /etc/resolv.conf.dhclient-new.* 2> /dev/null
+if is_network_reachable; then
+    echo_green "Connected to internet."
+else
+    echo_yellow "WARNING: No internet available."
+fi

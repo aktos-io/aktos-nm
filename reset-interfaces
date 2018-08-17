@@ -1,11 +1,15 @@
-#!/bin/bash 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-source $DIR/aktos-bash-lib/basic-functions.sh
+#!/bin/bash
+set -eu -o pipefail
+safe_source () { [[ ! -z ${1:-} ]] && source $1; _dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; _sdir=$(dirname "$(readlink -f "$0")"); }; safe_source
+# end of bash boilerplate
+
+safe_source $_sdir/lib/all.sh
 
 echo "Removing lease files..."
 rm /var/lib/dhcp/dhclient* 2> /dev/null
 
-iface="eth0"
+iface=${1:-eth0}
+
 #/etc/init.d/networking reload
 dhclient -r $iface # killing old client
 ifconfig $iface down
