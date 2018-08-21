@@ -64,7 +64,6 @@ if [[ -e /etc/init.d/network-manager ]]; then
 fi
 echo "Stopping any previous processes"
 killall wpa_supplicant 2> /dev/null
-route del default 2> /dev/null
 dhclient -r
 [[ $1 = 'stop' ]] && exit 0
 sleep 1
