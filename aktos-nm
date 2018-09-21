@@ -32,6 +32,10 @@ REASON
 
     	$script --stop
 
+    Search for available WiFi networks:
+
+        $script --search
+
 HELP
     exit
 }
@@ -68,6 +72,11 @@ while :; do
             cmd='stop'
             break
             ;;
+        --search)       # Takes an option argument; ensure it has been specified.
+            shift
+            cmd='search'
+            break
+            ;;
         *) # some other (positional?) options, break
             break 
     esac
@@ -92,11 +101,19 @@ elif [[ "$cmd" = "add" ]]; then
     [[ -z $essid ]] && show_help "ESSID is required"
     name=${name:-$essid}
     conf_file="${conf_dir}/${name}.conf"
+    if [[ -f $conf_file ]]; then
+        backup=${conf_file}_`date +%Y%m%dT%H%M`
+        echo_yellow "Warning: Moving old ${name}.conf as $backup"
+        mv $conf_file $backup
+    fi
     echo "Adding $name"
     $_sdir/config-wifi $essid $password $conf_file
 elif [[ "$cmd" == "stop" ]]; then
     $_sdir/connect-wifi stop
     sudo ifconfig $_wlan0 down
+    exit 0
+elif [[ "$cmd" = "search" ]]; then
+    sudo iwlist $_wlan0 scan | grep -i essid
     exit 0
 fi
 
