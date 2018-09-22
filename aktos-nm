@@ -40,13 +40,21 @@ HELP
     exit
 }
 
+# Parse command line arguments
+# ---------------------------
+# Initialize parameters
 cmd='connect'
+# ---------------------------
+args=("$@")
+_count=1
 while :; do
-    case ${1:-''} in
+    key="${1:-}"
+    case $key in
         -h|-\?|--help|'')
             show_help    # Display a usage synopsis.
             exit
             ;;
+        # --------------------------------------------------------
         --add)       # Takes an option argument; ensure it has been specified.
             shift
             cmd='add'
@@ -77,11 +85,20 @@ while :; do
             cmd='search'
             break
             ;;
-        *) # some other (positional?) options, break
-            break 
+        # --------------------------------------------------------
+        -*) # Handle unrecognized options
+            echo
+            echo "Unknown option: $1"
+            show_help
+            exit 1
+            ;;
+        *)  # Generate the positional arguments: $_arg1, $_arg2, ...
+            [[ ! -z ${1:-} ]] && declare _arg$((_count++))="$1" && shift
     esac
     [[ -z ${1:-} ]] && break
-done
+done; set -- "${args[@]}"
+# use $_arg1 in place of $1, $_arg2 in place of $2 and so on, "$@" is intact
+
 
 # include hardware configuration
 config=$_sdir/config.sh
