@@ -29,7 +29,7 @@ echo "Hook script will be used: $hook $*"
 echo_green "Starting daemon..."
 connected0=true
 connected=false
-poll=5
+check_period=5s
 while true; do
 	if ! is_cable_plugged eth0; then
         if [[ $connected0 = true ]] && [[ $connected = false ]]; then
@@ -45,5 +45,5 @@ while true; do
         connected0=$connected
         connected=true
     fi
-    sleep 5s
+    sleep $check_period
 done
