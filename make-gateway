@@ -9,7 +9,7 @@ if ! `hash udhcpd`; then
     exit 5
 fi
 
-[[ $(whoami) = "root" ]] || { sudo $0 $*; exit 0; }
+[[ $(whoami) = "root" ]] || { sudo $0 "$@"; exit 0; }
 
 source $_sdir/lib/all.sh
 
@@ -47,13 +47,22 @@ die () {
     exit 5
 }
 
+
+# Parse command line arguments
+# ---------------------------
+# Initialize parameters
 UNATTENDED=
+# ---------------------------
+args=("$@")
+_count=1
 while :; do
-    case ${1:-} in
+    key="${1:-}"
+    case $key in
         -h|-\?|--help|'')
             show_help    # Display a usage synopsis.
             exit
             ;;
+        # --------------------------------------------------------
         --wan)       # Takes an option argument; ensure it has been specified.
             if [ "$2" ]; then
                 WAN=$2
@@ -62,6 +71,7 @@ while :; do
             ;;
         --lan)       # Takes an option argument; ensure it has been specified.
             if [ "$2" ]; then
+                echo "lan is: $2"
                 LAN=$2
                 shift
             fi
@@ -76,13 +86,20 @@ while :; do
             UNATTENDED="yes"
             shift
             ;;
-        -?*)
-            printf 'WARN: Unknown option (ignored): %s\n' "$1" >&2
+        # --------------------------------------------------------
+        -*) # Handle unrecognized options
+            echo
+            echo "Unknown option: $1"
+            show_help
+            exit 1
             ;;
-        *)               # Default case: No more options, so break out of the loop.
-            break
+        *)  # Generate the positional arguments: $_arg1, $_arg2, ...
+            [[ ! -z ${1:-} ]] && declare _arg$((_count++))="$1" && shift
     esac
-done
+    [[ -z ${1:-} ]] && break
+done; set -- "${args[@]}"
+# use $_arg1 in place of $1, $_arg2 in place of $2 and so on, "$@" is intact
+
 
 #echo "DEBUG: WAN: $WAN, LAN: $LAN, LAN_IP: $LAN_IP"
 curr_interfaces=$(list_interfaces)
@@ -175,7 +192,7 @@ end_ip="$baseip.$((offset + 10))"
 #echo "DEBUG: baseip: $baseip, last octet: $last_octet, start: $start_ip, end: $end_ip"
 
 # --------------------------------------------
-TMP_CONFIG=$DIR/tmp_dhcp_config
+TMP_CONFIG=$_sdir/tmp_dhcp_config
 cat << CONFIG > $TMP_CONFIG
 # Sample minimal udhcpd configuration file
 #   (see https://udhcp.busybox.net/udhcpd.conf for full options)
