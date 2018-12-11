@@ -37,7 +37,7 @@ if [[ $1 != 'stop' ]]; then
     WAN=$1
     conf_file=$2
 
-    essid=$(cat $conf_file | grep ssid | awk -F'=' '{print $2}' | sed "s/\"//g")
+    essid=$(cat $conf_file | egrep "\bssid" | awk -F'=' '{print $2}' | sed "s/\"//g")
     echo_green "Connecting to $essid"
 
     ifconfig $WAN up
