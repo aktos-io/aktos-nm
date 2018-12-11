@@ -14,3 +14,4 @@
 # Run a command/script on cable detach:
 
     on-cable-detach command [arguments...]
+    on-cable-detach renew-ip eth0

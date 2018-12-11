@@ -1,12 +1,17 @@
 #!/bin/bash 
 
-IP_PREFIX="192.168.2."
+IP_PREFIX=$1
+
+if [[ -z $IP_PREFIX ]]; then
+	echo "Usage: $(basename $0) 192.168.1"
+	exit
+fi
 
 export COUNTER=1
 while [ $COUNTER -lt 255 ]
 do
-    TARG=${IP_PREFIX}${COUNTER}
-    echo "Pinging $TARG"
-    ping $TARG -c 1 -w 400 | grep -B 1 "Lost = 0" &
+    TARG="${IP_PREFIX}.${COUNTER}"
+    #echo "Pinging $TARG"
+    ping $TARG -c 1 -w 4 | grep -B 1 "\b0% packet loss" &
     COUNTER=$(( $COUNTER + 1 ))
 done
