@@ -5,7 +5,7 @@ safe_source () { [[ ! -z ${1:-} ]] && source $1; _dir="$(cd "$(dirname "${BASH_S
 
 safe_source $_sdir/lib/all.sh
 
-[[ $(whoami) = "root" ]] || { sudo $0 $*; exit 0; }
+[[ $(whoami) = "root" ]] || { sudo $0 "$@"; exit 0; }
 
 show_help(){
     local script=$(basename $0)
@@ -55,23 +55,22 @@ while :; do
             exit
             ;;
         # --------------------------------------------------------
-        --add)       # Takes an option argument; ensure it has been specified.
+        --add) shift
+            essid="${1:-}"
             shift
             cmd='add'
-            essid=${1:-}
-            shift
             ;;
         --password)       # Takes an option argument; ensure it has been specified.
             shift
             if [ "${1:-}" ]; then
-                password=$1
+                password="$1"
                 shift
             fi
             ;;
         --name)       # Takes an option argument; ensure it has been specified.
             shift
             if [ "$1" ]; then
-                name=$1
+                name="$1"
                 shift
             fi
             ;;
@@ -112,19 +111,19 @@ safe_source $config
 
 conf_dir="$_sdir/passwords.d"
 if [[ $cmd = "connect" ]]; then
-    essid=$1
+    essid="$1"
     conf_file="${conf_dir}/$essid.conf"
 elif [[ "$cmd" = "add" ]]; then
     [[ -z $essid ]] && show_help "ESSID is required"
-    name=${name:-$essid}
+    name="${name:-$essid}"
     conf_file="${conf_dir}/${name}.conf"
-    if [[ -f $conf_file ]]; then
-        backup=${conf_file}_`date +%Y%m%dT%H%M`
+    if [[ -f "$conf_file" ]]; then
+        backup="${conf_file}_`date +%Y%m%dT%H%M`"
         echo_yellow "Warning: Moving old ${name}.conf as $backup"
-        mv $conf_file $backup
+        mv "$conf_file" "$backup"
     fi
-    echo "Adding $name"
-    $_sdir/config-wifi $essid $password $conf_file
+    echo "Adding $name ($essid)"
+    $_sdir/config-wifi "$essid" "$password" "$conf_file"
 elif [[ "$cmd" == "stop" ]]; then
     $_sdir/connect-wifi stop
     sudo ifconfig $_wlan0 down

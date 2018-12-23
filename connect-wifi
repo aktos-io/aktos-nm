@@ -43,7 +43,7 @@ if [[ $1 != 'stop' ]]; then
     ifconfig $WAN up
     i=0
     while :; do
-        found_essid=$(iwlist $WAN scan | grep -i essid | grep $essid)
+        found_essid=$(iwlist $WAN scan | grep -i essid | grep "$essid")
         if [ "$found_essid" == "" ]; then
             i=$(( $i + 1 ))
             echo -en "\r"

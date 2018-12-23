@@ -32,14 +32,14 @@ if [[ "$1" == "" ]]; then
 	echo "searching for wireless networks..."
 	iwlist wlan0 scan | grep -i essid | more
 else
-	essid=$1
-	passwd=$2
+	essid="$1"
+	passwd="$2"
 	if [[ "$essid" == "" ]] || [[ "$passwd" == "" ]]; then 
 		print_usage
 	fi
 
 	# print and maybe save 
-	conf_name=$3
-	wpa_passphrase $essid $passwd | tee $conf_name
+	conf_name="$3"
+	wpa_passphrase "$essid" "$passwd" | tee "$conf_name"
 fi
 
