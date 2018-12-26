@@ -28,13 +28,10 @@ REASON
 
     	$script --add foo --password 1234 [--name alias]
 
-    Disconnect and cleanup:
-
-    	$script --stop
-
-    Search for available WiFi networks:
-
-        $script --search
+    --stop      : Disconnect and cleanup
+    --search    : Search for available WiFi networks
+    --list      : List available saved connections
+    --status    : Show current connection status
 
 HELP
     exit
@@ -84,6 +81,13 @@ while :; do
             cmd='search'
             break
             ;;
+        --status) shift
+            iw dev
+            exit
+            ;;
+        --list) shift
+            cmd="list"
+            ;;
         # --------------------------------------------------------
         -*) # Handle unrecognized options
             echo
@@ -110,28 +114,38 @@ safe_source $config
 
 
 conf_dir="$_sdir/passwords.d"
-if [[ $cmd = "connect" ]]; then
-    essid="$1"
-    conf_file="${conf_dir}/$essid.conf"
-elif [[ "$cmd" = "add" ]]; then
-    [[ -z $essid ]] && show_help "ESSID is required"
-    name="${name:-$essid}"
-    conf_file="${conf_dir}/${name}.conf"
-    if [[ -f "$conf_file" ]]; then
-        backup="${conf_file}_`date +%Y%m%dT%H%M`"
-        echo_yellow "Warning: Moving old ${name}.conf as $backup"
-        mv "$conf_file" "$backup"
-    fi
-    echo "Adding $name ($essid)"
-    $_sdir/config-wifi "$essid" "$password" "$conf_file"
-elif [[ "$cmd" == "stop" ]]; then
-    $_sdir/connect-wifi stop
-    sudo ifconfig $_wlan0 down
-    exit 0
-elif [[ "$cmd" = "search" ]]; then
-    sudo iwlist $_wlan0 scan | grep -i essid
-    exit 0
-fi
+case $cmd in
+    connect)
+        essid="$1"
+        conf_file="${conf_dir}/$essid.conf"
+        ;;
+    add)
+        [[ -z $essid ]] && show_help "ESSID is required"
+        name="${name:-$essid}"
+        conf_file="${conf_dir}/${name}.conf"
+        if [[ -f "$conf_file" ]]; then
+            backup="${conf_file}_`date +%Y%m%dT%H%M`"
+            echo_yellow "Warning: Moving old ${name}.conf as $backup"
+            mv "$conf_file" "$backup"
+        fi
+        echo "Adding $name ($essid)"
+        $_sdir/config-wifi "$essid" "$password" "$conf_file"
+        ;;
+    stop)
+        $_sdir/connect-wifi stop
+        sudo ifconfig $_wlan0 down
+        ;;
+    search)
+        sudo iwlist $_wlan0 scan | grep -i essid
+        ;;
+    list)
+        ls $conf_dir
+        ;;
+esac
 
-# connect
-$_sdir/connect-wifi $_wlan0 "$conf_file"
+case $cmd in
+    connect|add)
+        # connect
+        $_sdir/connect-wifi $_wlan0 "$conf_file"
+        ;;
+esac
