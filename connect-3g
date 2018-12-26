@@ -1,9 +1,6 @@
 #!/bin/bash
+set -u -o pipefail
+safe_source () { [[ ! -z ${1:-} ]] && source $1; _dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; _sdir=$(dirname "$(readlink -f "$0")"); }; safe_source
+# end of bash boilerplate
 
-if [[ "$(whoami)" != "root" ]]; then 
-	sudo $0
-	exit
-fi
-
-/etc/init.d/network-manager stop
-wvdial 3gconnect 
+sudo wvdial -C $_sdir/wvdial.conf turkcell

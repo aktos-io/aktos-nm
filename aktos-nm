@@ -32,6 +32,7 @@ REASON
     --search    : Search for available WiFi networks
     --list      : List available saved connections
     --status    : Show current connection status
+    --3g        : Connect via 3g usb modem
 
 HELP
     exit
@@ -88,6 +89,9 @@ while :; do
         --list) shift
             cmd="list"
             ;;
+        --3g) shift
+            cmd="3g"
+            ;;
         # --------------------------------------------------------
         -*) # Handle unrecognized options
             echo
@@ -140,6 +144,9 @@ case $cmd in
         ;;
     list)
         ls $conf_dir
+        ;;
+    3g)
+        $_sdir/connect-3g
         ;;
 esac
 
