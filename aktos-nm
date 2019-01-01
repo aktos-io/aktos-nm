@@ -140,6 +140,7 @@ case $cmd in
         sudo ifconfig $_wlan0 down
         ;;
     search)
+        sudo ifconfig $_wlan0 up
         sudo iwlist $_wlan0 scan | grep -i essid
         ;;
     list)
