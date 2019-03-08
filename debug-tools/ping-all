@@ -3,8 +3,8 @@
 IP_PREFIX=$1
 
 if [[ -z $IP_PREFIX ]]; then
-	echo "Usage: $(basename $0) 192.168.1"
-	exit
+        echo "Usage: $(basename $0) 192.168.1"
+        exit
 fi
 
 export COUNTER=1
@@ -12,6 +12,9 @@ while [ $COUNTER -lt 255 ]
 do
     TARG="${IP_PREFIX}.${COUNTER}"
     #echo "Pinging $TARG"
-    ping $TARG -c 1 -w 4 | grep -B 1 "\b0% packet loss" &
+    ping $TARG -c 1 -w 4 | grep -B 1 "\b0% packet loss" > /dev/null && \
+        echo $TARG is alive. &
     COUNTER=$(( $COUNTER + 1 ))
 done
+
+wait
