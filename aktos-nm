@@ -108,16 +108,18 @@ done; set -- "${args[@]}"
 
 
 # include hardware configuration
-config=$_sdir/config.sh
+config="$_sdir/../config.sh"
 if [[ ! -f $config ]]; then
-    cp $config.sample $config
-    chown $SUDO_USER $config
-    nano $config
+    echo "No configuration file ($(realpath $config)) found."
+    echo
+    echo "Use $_sdir/config.sample as a template."
+    exit 1
 fi
+
 safe_source $config
 
 
-conf_dir="$_sdir/passwords.d"
+conf_dir="$_sdir/../passwords.d"
 case $cmd in
     connect)
         essid="$1"
