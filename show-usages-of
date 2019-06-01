@@ -1,0 +1,8 @@
+#!/bin/bash
+
+iface=${1:-}
+if [[ -z $iface ]]; then
+    echo "First parameter should be the interface"
+    exit 1
+fi
+sudo nethogs -v3 $1
