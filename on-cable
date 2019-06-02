@@ -46,12 +46,18 @@ echo_green "Starting daemon..."
 connected0=true
 connected=false
 check_period=2s
+first_check_done=false
 while true; do
 	if ! is_cable_plugged eth0; then
         if [[ $connected0 = true ]] && [[ $connected = false ]]; then
             if [[ "$edge" == "detach" ]]; then
-                echo_red "Cable is detached, triggering $(basename $hook)"
-                $hook $*
+                if ! $first_check_done; then
+                    echo_red "Cable is detached (initial status)"
+                    first_check_done=true
+                else
+                    echo_red "Cable is detached, triggering $(basename $hook)"
+                    $hook $*
+                fi
             else
                 echo_red "Cable is detached."
             fi
@@ -61,8 +67,13 @@ while true; do
 	else
     	if [[ $connected0 = false ]] && [[ $connected = true ]]; then
             if [[ "$edge" == "attach" ]]; then
-                echo_green "Cable is attached, triggering $(basename $hook)"
-                $hook $*
+                if ! $first_check_done; then
+                    echo_green "Cable is attached (initial status)"
+                    first_check_done=true
+                else
+                    echo_green "Cable is attached, triggering $(basename $hook)"
+                    $hook $*
+                fi
             else
                 echo_green "Cable is attached."
             fi
