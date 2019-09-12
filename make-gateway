@@ -4,7 +4,7 @@ safe_source () { [[ ! -z ${1:-} ]] && source $1; _dir="$(cd "$(dirname "${BASH_S
 # end of bash boilerplate
 
 # check the dependencies
-if ! `hash udhcpd`; then
+if ! `hash udhcpd 2> /dev/null`; then
     echo "Install udhcpd first."
     exit 5
 fi
