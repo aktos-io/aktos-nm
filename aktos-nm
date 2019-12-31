@@ -112,7 +112,7 @@ config="$_sdir/../config.sh"
 if [[ ! -f $config ]]; then
     echo "No configuration file ($(realpath $config)) found."
     echo
-    echo "Use $_sdir/config.sample as a template."
+    echo "Use $_sdir/config.sh.sample as a template."
     exit 1
 fi
 

@@ -6,6 +6,10 @@ safe_source () { [[ ! -z ${1:-} ]] && source $1; _dir="$(cd "$(dirname "${BASH_S
 safe_source $_sdir/lib/all.sh
 set +e # do not exit on error
 
+ts(){
+    echo "[ `timestamp_log` ]"
+}
+
 edge=${1:-} # "attach" or "detach"
 if [[ -z $edge ]]; then
     echo "First parameter should be edge (attach or detach)"
@@ -42,7 +46,7 @@ shift
 echo "Hook script will be used: $hook $*"
 
 
-echo_green "Starting daemon..."
+echo_green "`ts` Starting daemon..."
 connected0=true
 connected=false
 check_period=2s
@@ -52,14 +56,14 @@ while true; do
         if [[ $connected0 = true ]] && [[ $connected = false ]]; then
             if [[ "$edge" == "detach" ]]; then
                 if ! $first_check_done; then
-                    echo_red "Cable is detached (initial status)"
+                    echo_red "`ts` Cable is detached (initial status)"
                     first_check_done=true
                 else
-                    echo_red "Cable is detached, triggering $(basename $hook)"
+                    echo_red "`ts` Cable is detached, triggering $(basename $hook)"
                     $hook $*
                 fi
             else
-                echo_red "Cable is detached."
+                echo_red "`ts` Cable is detached."
             fi
         fi
         connected0=$connected
@@ -68,14 +72,14 @@ while true; do
     	if [[ $connected0 = false ]] && [[ $connected = true ]]; then
             if [[ "$edge" == "attach" ]]; then
                 if ! $first_check_done; then
-                    echo_green "Cable is attached (initial status)"
+                    echo_green "`ts` Cable is attached (initial status)"
                     first_check_done=true
                 else
-                    echo_green "Cable is attached, triggering $(basename $hook)"
+                    echo_green "`ts` Cable is attached, triggering $(basename $hook)"
                     $hook $*
                 fi
             else
-                echo_green "Cable is attached."
+                echo_green "`ts` Cable is attached."
             fi
         fi
         connected0=$connected

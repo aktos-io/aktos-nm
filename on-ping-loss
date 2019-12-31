@@ -6,7 +6,18 @@ safe_source () { [[ ! -z ${1:-} ]] && source $1; _dir="$(cd "$(dirname "${BASH_S
 safe_source $_sdir/lib/all.sh
 set +e # do not exit on error
 
-hook=$1
+ts(){
+    echo "[ `timestamp_log` ]"
+}
+
+period=${1:-}  # format: "hh:mm:ss"
+host=${2:-}
+hook="$3"
+# re-align rest of the parameters
+shift
+shift
+shift
+
 if [[ -x $PWD/$hook ]]; then
     hook=$PWD/$hook
 elif [[ -x $_sdir/$hook ]]; then
@@ -18,28 +29,26 @@ else
     exit 1
 fi
 
-[[ $(whoami) = "root" ]] || { sudo $0 $*; exit 0; }
+echo "Hook command to be used: $hook"
 
-echo "Hook script will be used: $hook"
+is_host_reachable(){
+    is_ip_reachable "$host" "$period"
+}
 
-# re-align rest of the parameters
-shift
-
-echo_green "Starting daemon..."
+echo_green "`ts` Starting daemon: Host: $host, period: $period..."
 connected0=true
 connected=false
-poll=5
 while true; do
-	if ! is_network_reachable; then
+    if ! is_host_reachable; then
         if [[ $connected0 = true ]] && [[ $connected = false ]]; then
-            echo_red "Network seems unreachable, triggering $(basename $hook)"
-            $hook $*
+            echo_red "`ts` Host seems unreachable, triggering $(basename $hook)"
+            $hook "$@"
         fi
         connected0=$connected
         connected=false
-	else
+    else
     	if [[ $connected0 = false ]] && [[ $connected = true ]]; then
-            echo_green "Network is reachable."
+            echo_green "`ts` Host is reachable."
         fi
         connected0=$connected
         connected=true
