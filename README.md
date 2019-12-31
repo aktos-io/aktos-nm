@@ -15,3 +15,11 @@
 
     on-cable-detach command [arguments...]
     on-cable-detach renew-ip eth0
+
+# Search 
+
+    aktos-nm --search
+
+    > to skip first line (column names): 
+    > 
+    >     aktos-nm --search | sed 1d
