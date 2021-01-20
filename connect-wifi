@@ -73,12 +73,15 @@ wpa_supplicant -c"$conf_file" -Dnl80211 -i$WAN &
 #wpa_supplicant -c"$conf_file" -Dwext -i$WAN &
 
 # get dynamic IP
+_timeout=30
 while :; do
     echo "Cleaning DHCP cache"
     route del default 2> /dev/null
     dhclient -r
 
-    timeout 5s dhclient $WAN 2> /dev/null
+    echo "Requesting IP (timeout: $_timeout)"
+    timeout $_timeout dhclient $WAN 2> /dev/null
+    _timeout=$(($_timeout + 10))
     if [[ $? -eq 0 ]]; then
         echo "IP address: $(get_ip_of $WAN)"
         set +e
