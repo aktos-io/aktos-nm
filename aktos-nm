@@ -28,11 +28,12 @@ REASON
 
     	$script --add foo --password 1234 [--name alias]
 
-    --stop      : Disconnect and cleanup
-    --search    : Search for available WiFi networks
-    --list      : List available saved connections
-    --status    : Show current connection status
-    --3g        : Connect via 3g usb modem
+    --stop        : Disconnect and cleanup
+    --search      : Search for available WiFi networks
+    --list        : List available saved connections
+    --status      : Show current connection status
+    --3g          : Connect via 3g usb modem
+    --iface [DEV] : connect via this iface. ( Empty means "list available")
 
 HELP
     exit
@@ -55,42 +56,42 @@ while :; do
         # --------------------------------------------------------
         --add) shift
             essid="${1:-}"
-            shift
             cmd='add'
             ;;
-        --password)       # Takes an option argument; ensure it has been specified.
-            shift
+        --password) shift       # Takes an option argument; ensure it has been specified.
             if [ "${1:-}" ]; then
                 password="$1"
-                shift
             fi
             ;;
-        --name)       # Takes an option argument; ensure it has been specified.
-            shift
+        --name) shift       # Takes an option argument; ensure it has been specified.
             if [ "$1" ]; then
                 name="$1"
-                shift
             fi
             ;;
         --stop)       # Takes an option argument; ensure it has been specified.
-            shift
             cmd='stop'
-            break
             ;;
         --search)       # Takes an option argument; ensure it has been specified.
-            shift
             cmd='search'
-            break
             ;;
-        --status) shift
+        --status)
             iw dev
-            exit
+            exit 0
             ;;
-        --list) shift
+        --list)
             cmd="list"
             ;;
-        --3g) shift
+        --3g)
             cmd="3g"
+            ;;
+        --iface) shift
+            iface=${1:-}
+            if [[ -z $iface ]]; then
+                echo "Displaying available interfaces:"
+                echo "--------------------------------"
+                sudo lshw -class network | grep "logical name"
+                exit 
+            fi 
             ;;
         # --------------------------------------------------------
         -*) # Handle unrecognized options
@@ -99,13 +100,17 @@ while :; do
             show_help
             exit 1
             ;;
-        *)  # Generate the positional arguments: $_arg1, $_arg2, ...
-            [[ ! -z ${1:-} ]] && declare _arg$((_count++))="$1" && shift
+        *)  # Generate the new positional arguments: $arg1, $arg2, ... and ${args[@]}
+            if [[ ! -z ${1:-} ]]; then
+                declare arg$((_count++))="$1"
+                args+=("$1")
+            fi
+            ;;
     esac
+    shift
     [[ -z ${1:-} ]] && break
 done; set -- "${args[@]}"
 # use $_arg1 in place of $1, $_arg2 in place of $2 and so on, "$@" is intact
-
 
 # include hardware configuration
 config="$_sdir/../config.sh"
@@ -117,13 +122,20 @@ if [[ ! -f $config ]]; then
 fi
 
 safe_source $config
-
+if [[ -n ${iface:-} ]]; then
+    echo "Note: Using $iface instead of $_wlan0"
+    _wlan0=$iface
+fi
 
 conf_dir="$_sdir/../passwords.d"
 case $cmd in
     connect)
-        essid="$1"
+        essid="$arg1"
         conf_file="${conf_dir}/$essid.conf"
+        if [[ ! -f $conf_file ]]; then 
+            echo "No configuration file found for essid: \"$essid\"."
+            exit 1
+        fi
         ;;
     add)
         [[ -z $essid ]] && show_help "ESSID is required"
@@ -140,10 +152,12 @@ case $cmd in
     stop)
         $_sdir/connect-wifi stop
         sudo ifconfig $_wlan0 down
+        exit 0
         ;;
     search)
         sudo ifconfig $_wlan0 up
-        sudo iwlist $_wlan0 scan | $_sdir/iw_parse/iw_parse
+        sudo iwlist $_wlan0 scan | $_sdir/iw_parse/iw_parse | sed 1d
+        exit 0
         ;;
     list)
         ls $conf_dir
