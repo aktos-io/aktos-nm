@@ -26,7 +26,7 @@ REASON
 
     Add a new configuration:
 
-    	$script --add foo --password 1234 [--name alias]
+    	$script --add foo [--password 1234] [--name alias]
 
     --stop        : Disconnect and cleanup
     --search      : Search for available WiFi networks
@@ -60,7 +60,7 @@ while :; do
             ;;
         --password) shift       # Takes an option argument; ensure it has been specified.
             if [ "${1:-}" ]; then
-                password="$1"
+                password="${1:-}"
             fi
             ;;
         --name) shift       # Takes an option argument; ensure it has been specified.
@@ -75,7 +75,7 @@ while :; do
             cmd='search'
             ;;
         --status)
-            iw dev
+            iw dev | grep ssid
             exit 0
             ;;
         --list)
@@ -147,7 +147,7 @@ case $cmd in
             mv "$conf_file" "$backup"
         fi
         echo "Adding $name ($essid)"
-        $_sdir/config-wifi "$essid" "$password" "$conf_file"
+        $_sdir/config-wifi "$conf_file" "$essid" "${password:-}"
         ;;
     stop)
         $_sdir/connect-wifi stop

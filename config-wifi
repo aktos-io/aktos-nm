@@ -21,7 +21,7 @@ usage:
 		$script 
 
 	add:
-		$script ESSID PASSWD [CONFIG_FILE]
+		$script CONFIG_FILE ESSID [PASSWD]
 HELP
 	exit
 fi
@@ -32,14 +32,23 @@ if [[ "$1" == "" ]]; then
 	echo "searching for wireless networks..."
 	iwlist wlan0 scan | grep -i essid | more
 else
-	essid="$1"
-	passwd="$2"
-	if [[ "$essid" == "" ]] || [[ "$passwd" == "" ]]; then 
+	conf_name="$1"
+	essid="$2"
+	passwd="$3"
+	if [[ -z "$essid" ]]; then 
 		print_usage
 	fi
 
 	# print and maybe save 
-	conf_name="$3"
-	wpa_passphrase "$essid" "$passwd" | tee "$conf_name"
+    if [[ -n "$passwd" ]]; then
+    	wpa_passphrase "$essid" "$passwd" | tee "$conf_name"
+    else
+        cat <<EOL > "$conf_name"
+network={
+    ssid="$essid"
+    key_mgmt=NONE
+}
+EOL
+    fi
 fi
 
