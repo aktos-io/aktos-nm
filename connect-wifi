@@ -37,7 +37,7 @@ if [[ $1 != 'stop' ]]; then
     WAN=$1
     conf_file=$2
 
-    essid=$(cat $conf_file | egrep "\bssid" | awk -F'=' '{print $2}' | sed "s/\"//g")
+    essid=$(cat "$conf_file" | egrep "\bssid" | awk -F'=' '{print $2}' | sed "s/\"//g")
     echo_green "Connecting to $essid"
 
     ifconfig $WAN up
@@ -75,12 +75,16 @@ wpa_supplicant -c"$conf_file" -Dnl80211 -i$WAN &
 # get dynamic IP
 _timeout=30
 while :; do
+    while :; do
+        route -n | awk '{print $1}' | grep "0.0.0.0" &> /dev/null || break
+        sleep 5
+    done
     echo "Cleaning DHCP cache"
     route del default 2> /dev/null
     dhclient -r
 
     echo "Requesting IP (timeout: $_timeout)"
-    timeout $_timeout dhclient $WAN 2> /dev/null
+    timeout --foreground $_timeout dhclient $WAN 2> /dev/null
     _timeout=$(($_timeout + 10))
     if [[ $? -eq 0 ]]; then
         echo "IP address: $(get_ip_of $WAN)"
@@ -91,7 +95,7 @@ while :; do
         else
             echo_yellow "WARNING: No internet available."
         fi
-        break
+        _timeout=30
     else
         errcho "..failed getting dhcp response for $WAN"
     fi
