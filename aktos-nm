@@ -156,7 +156,23 @@ case $cmd in
         ;;
     search)
         sudo ifconfig $_wlan0 up
-        sudo iwlist $_wlan0 scan | $_sdir/iw_parse/iw_parse | sed 1d
+        while read -r network; do
+            name=$(echo $network | awk '{print $1}')
+            saved_name=
+            while read -r known; do
+                saved_name=$(echo $known | cut -d: -f1 | xargs -I {} basename {} | sed 's/\.conf$//')
+            done <<< $(grep "ssid=\"$name\"" $conf_dir/* 2>/dev/null || true)
+            GREEN='\033[1;32m'
+            NC='\033[0m' # No Color
+            if [[ -n $saved_name ]]; then
+                echo -ne $GREEN
+                echo -n "$network"
+                echo -ne "\t$saved_name"
+                echo -e $NC
+            else
+                echo "$network"
+            fi
+        done <<< $(sudo iwlist $_wlan0 scan | $_sdir/iw_parse/iw_parse | sed 1d)
         exit 0
         ;;
     list)
