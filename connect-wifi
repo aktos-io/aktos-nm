@@ -82,7 +82,8 @@ while :; do
     echo "Cleaning DHCP cache"
     route del default 2> /dev/null
     dhclient -r
-    rm /var/lib/dhcp/dhclient.lease 2> /dev/null
+    leases="/var/lib/dhcp/dhclient.lease*"
+    [[ -f $leases ]] && rm $leases
 
     echo "Requesting IP (timeout: $_timeout)"
     timeout --foreground $_timeout dhclient $WAN 2> /dev/null
